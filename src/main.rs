@@ -5,13 +5,12 @@ use ratatui::{
     crossterm::{
         self,
         event::{self, KeyCode, KeyEventKind},
-        style::Stylize,
         terminal::{disable_raw_mode, enable_raw_mode},
         ExecutableCommand,
     },
     layout::{Alignment, Constraint, Direction, Layout},
-    style::{Modifier, Style},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
+    style::Style,
+    widgets::{Block, Borders, Paragraph},
     Terminal,
 };
 
