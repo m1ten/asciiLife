@@ -5,6 +5,7 @@ use ratatui::{
     crossterm::{
         self,
         event::{self, KeyCode, KeyEventKind},
+        style::Stylize,
         terminal::{disable_raw_mode, enable_raw_mode},
         ExecutableCommand,
     },
@@ -34,8 +35,6 @@ fn main() -> io::Result<()> {
 
     let mut app = App {
         title: format!("asciiLife"),
-        console_input: String::new(),
-        selected_menu_item: 0,
         ..Default::default()
     };
     let app_result = app.run(&mut terminal);
@@ -50,17 +49,60 @@ fn main() -> io::Result<()> {
     app_result
 }
 
-#[derive(Debug, Default)]
-pub struct App<'a> {
-    title: String,
-    exit: bool,
-    console_input: String,
-    console_style: Style,
-    menu_items: Vec<ListItem<'a>>,
-    selected_menu_item: usize,
+#[derive(Debug)]
+enum Scene {
+    Main,
+    Play,
+    Options,
 }
 
-impl App<'_> {
+impl Default for Scene {
+    fn default() -> Self {
+        Scene::Main
+    }
+}
+
+impl Scene {
+    fn fmt(&self) -> &str {
+        match self {
+            Scene::Main => "Main",
+            Scene::Play => "Play",
+            Scene::Options => "Options",
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Console {
+    input: String,
+    style: Style,
+}
+
+impl Default for Console {
+    fn default() -> Self {
+        Console {
+            input: String::new(),
+            style: Style::default(),
+        }
+    }
+}
+
+impl Console {
+    fn reset(&mut self) {
+        self.input.clear();
+        self.style = Style::default();
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct App {
+    title: String,
+    scene: Scene,
+    exit: bool,
+    console: Console,
+}
+
+impl App {
     pub fn run(&mut self, terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> {
         while !self.exit {
             if event::poll(std::time::Duration::from_millis(100))? {
@@ -79,44 +121,33 @@ impl App<'_> {
                 KeyCode::Char('q') => self.exit = true,
                 KeyCode::Enter => {
                     // Handle the entered command here
-                    match self.console_input.as_str() {
-                        "quit" => self.exit = true,
-                        "exit" => self.exit = true,
+                    match self.console.input.as_str() {
+                        "quit" | "exit" => {
+                            self.exit = true;
+                        }
                         "play" => {
-                            self.console_style = Style::default().fg(ratatui::style::Color::Green);
-                            self.console_input = "Playing...".to_string();
+                            self.console.reset();
+                            self.scene = Scene::Play;
+                        }
+                        "options" | "settings" => {
+                            self.console.reset();
+                            self.scene = Scene::Options;
+                        }
+                        "main" | "home" => {
+                            self.console.reset();
+                            self.scene = Scene::Main;
                         }
                         _ => {
-                            self.console_style = Style::default().fg(ratatui::style::Color::Red);
+                            self.console.style = Style::default().fg(ratatui::style::Color::Red);
                         }
                     }
                 }
                 KeyCode::Char(c) => {
-                    self.console_input.push(c);
+                    self.console.input.push(c);
                 }
                 KeyCode::Backspace => {
-                    self.console_input.pop();
-                    self.console_style = ratatui::style::Style::default();
-                }
-                KeyCode::Up => {
-                    if self.selected_menu_item > 0 {
-                        self.selected_menu_item -= 1;
-                    }
-                }
-                KeyCode::Down => {
-                    if self.selected_menu_item < self.menu_items.len() - 1 {
-                        // Assuming 2 menu items for now
-                        self.selected_menu_item += 1;
-                    }
-                }
-                KeyCode::Right => {
-                    // change the console input to the selected menu item
-                    match self.selected_menu_item {
-                        0 => self.console_input = "play".to_string(),
-                        1 => self.console_input = "options".to_string(),
-                        2 => self.exit = true,
-                        _ => {}
-                    }
+                    self.console.input.pop();
+                    self.console.style = ratatui::style::Style::default();
                 }
                 _ => {}
             }
@@ -132,39 +163,13 @@ impl App<'_> {
         .block(Block::default().borders(Borders::ALL).title("Title"))
         .alignment(Alignment::Center);
 
-        let mut state = ListState::default();
-        state.select(Some(self.selected_menu_item));
+        let screen = Paragraph::new(self.scene.fmt())
+            .block(Block::default().borders(Borders::ALL).title("Scene"))
+            .alignment(Alignment::Center);
 
-        self.menu_items = vec![
-            ListItem::new("Play").style(if self.selected_menu_item == 0 {
-                ratatui::style::Style::default().fg(ratatui::style::Color::Yellow)
-            } else {
-                ratatui::style::Style::default()
-            }),
-            ListItem::new("Options").style(if self.selected_menu_item == 1 {
-                ratatui::style::Style::default().fg(ratatui::style::Color::Yellow)
-            } else {
-                ratatui::style::Style::default()
-            }),
-            ListItem::new("Quit").style(if self.selected_menu_item == 2 {
-                ratatui::style::Style::default().fg(ratatui::style::Color::Yellow)
-            } else {
-                ratatui::style::Style::default()
-            }),
-        ];
-
-        // center the menu horizontally
-        let menu = List::new(self.menu_items.clone())
-            .block(Block::default().borders(Borders::ALL).title("Menu"))
-            .highlight_style(
-                ratatui::style::Style::default()
-                    .bg(ratatui::style::Color::DarkGray)
-                    .fg(ratatui::style::Color::Black),
-            );
-
-        let console = Paragraph::new(self.console_input.clone())
+        let console = Paragraph::new(self.console.input.as_str())
             .block(Block::default().borders(Borders::ALL).title("Console"))
-            .style(self.console_style)
+            .style(self.console.style)
             .alignment(Alignment::Left);
 
         let chunks = Layout::default()
@@ -182,7 +187,7 @@ impl App<'_> {
         terminal.draw(|f| {
             let chunks = chunks.split(f.area());
             f.render_widget(title, chunks[0]);
-            f.render_stateful_widget(menu, chunks[1], &mut state);
+            f.render_widget(screen, chunks[1]);
             f.render_widget(console, chunks[2]);
         })?;
 
