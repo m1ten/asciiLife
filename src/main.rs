@@ -9,7 +9,7 @@ use ratatui::{
         ExecutableCommand,
     },
     layout::{Alignment, Constraint, Direction, Layout},
-    style::Modifier,
+    style::{Modifier, Style},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Terminal,
 };
@@ -55,6 +55,7 @@ pub struct App<'a> {
     title: String,
     exit: bool,
     console_input: String,
+    console_style: Style,
     menu_items: Vec<ListItem<'a>>,
     selected_menu_item: usize,
 }
@@ -78,14 +79,24 @@ impl App<'_> {
                 KeyCode::Char('q') => self.exit = true,
                 KeyCode::Enter => {
                     // Handle the entered command here
-                    println!("Command entered: {}", self.console_input);
-                    self.console_input.clear();
+                    match self.console_input.as_str() {
+                        "quit" => self.exit = true,
+                        "exit" => self.exit = true,
+                        "play" => {
+                            self.console_style = Style::default().fg(ratatui::style::Color::Green);
+                            self.console_input = "Playing...".to_string();
+                        }
+                        _ => {
+                            self.console_style = Style::default().fg(ratatui::style::Color::Red);
+                        }
+                    }
                 }
                 KeyCode::Char(c) => {
                     self.console_input.push(c);
                 }
                 KeyCode::Backspace => {
                     self.console_input.pop();
+                    self.console_style = ratatui::style::Style::default();
                 }
                 KeyCode::Up => {
                     if self.selected_menu_item > 0 {
@@ -100,7 +111,12 @@ impl App<'_> {
                 }
                 KeyCode::Right => {
                     // change the console input to the selected menu item
-                    self.console_input = self.selected_menu_item.to_string();
+                    match self.selected_menu_item {
+                        0 => self.console_input = "play".to_string(),
+                        1 => self.console_input = "options".to_string(),
+                        2 => self.exit = true,
+                        _ => {}
+                    }
                 }
                 _ => {}
             }
@@ -146,8 +162,9 @@ impl App<'_> {
                     .fg(ratatui::style::Color::Black),
             );
 
-        let console = Paragraph::new(&self.console_input as &str)
+        let console = Paragraph::new(self.console_input.clone())
             .block(Block::default().borders(Borders::ALL).title("Console"))
+            .style(self.console_style)
             .alignment(Alignment::Left);
 
         let chunks = Layout::default()
