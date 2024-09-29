@@ -32,7 +32,7 @@ impl App {
         }
     }
 
-    pub fn draw(&self, f: &mut Frame, title: &str, input: &str) {
+    pub fn draw(&self, f: &mut Frame, title: &str, input: &str, _cursor: &mut u8) {
         let title_wg = Paragraph::new(ratatui::style::Stylize::bold(title))
             .block(Block::default().borders(Borders::ALL).title("Title"))
             .alignment(Alignment::Center);
@@ -41,10 +41,20 @@ impl App {
             .block(Block::default().borders(Borders::ALL).title("Scene"))
             .alignment(Alignment::Center);
 
-        let console_wg = Paragraph::new(format!("🔥 {}", input))
-            .block(Block::default().borders(Borders::ALL).title("Console"))
-            .style(self.console_style)
-            .alignment(Alignment::Left);
+        let show_cursor: String;
+        if *_cursor % 2 == 0 {
+            show_cursor = "|".to_string();
+        } else {
+            show_cursor = " ".to_string();
+        }
+
+        *_cursor += 1;
+
+        let console_wg =
+            Paragraph::new(format!("🔥 {}{}", input, show_cursor)) // Adding a cursor symbol '|'
+                .block(Block::default().borders(Borders::ALL).title("Console"))
+                .style(self.console_style)
+                .alignment(Alignment::Left);
 
         let chunks = Layout::default()
             .direction(Direction::Vertical)
@@ -64,9 +74,11 @@ impl App {
         f.render_widget(console_wg, chunks[2]);
     }
 
-    pub fn handle_input(&mut self, input: &str) -> bool {
+    pub fn handle_input(&mut self, input: &str) -> Result<bool, bool> {
         match input {
-            "quit" | "exit" => return false,
+            "quit" | "exit" => {
+                return Ok(false);
+            }
             "play" => {
                 self.console_style = Style::default();
                 self.scene = Scene::Play;
@@ -81,9 +93,10 @@ impl App {
             }
             _ => {
                 self.console_style = Style::default().fg(Color::Red);
+                return Err(true);
             }
         }
 
-        true
+        Ok(true)
     }
 }

@@ -4,6 +4,7 @@ use crossterm::event::{self, Event, KeyCode};
 use crossterm::execute;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use ratatui::backend::CrosstermBackend;
+use ratatui::crossterm::cursor;
 use ratatui::layout::Rect;
 use ratatui::{crossterm, Terminal};
 use std::io::{self};
@@ -17,6 +18,7 @@ fn main() -> Result<(), io::Error> {
 
     let mut input = String::new();
     let mut app = App::App::new();
+    let mut cursor: u8 = 0;
 
     loop {
         let size = terminal.size()?;
@@ -48,7 +50,7 @@ fn main() -> Result<(), io::Error> {
             continue;
         }
 
-        terminal.draw(|f| app.draw(f, "asciiLife", &input))?;
+        terminal.draw(|f| app.draw(f, "asciiLife", &input, &mut cursor))?;
 
         if event::poll(std::time::Duration::from_millis(200))? {
             if let Event::Key(key) = event::read()? {
@@ -59,8 +61,9 @@ fn main() -> Result<(), io::Error> {
                         app.console_style = ratatui::style::Style::default();
                     }
                     KeyCode::Enter => match app.handle_input(&input) {
-                        true => (),
-                        false => break,
+                        Ok(true) => input.clear(),
+                        Ok(false) => break,
+                        Err(_) => (),
                     },
                     KeyCode::Esc => break,
                     _ => {}
