@@ -13,6 +13,7 @@ fn main() -> Result<(), io::Error> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, crossterm::terminal::EnterAlternateScreen)?;
+
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
@@ -21,7 +22,7 @@ fn main() -> Result<(), io::Error> {
     let mut cursor: u8 = 0;
 
     loop {
-        let size = terminal.size()?;
+        let size: ratatui::prelude::Size = terminal.size()?;
         if size.height < 30 || size.width < 80 {
             terminal.draw(|f| {
                 f.render_widget(
