@@ -1,7 +1,5 @@
-use ratatui::crossterm::terminal;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout};
 use ratatui::style::{Color, Style};
-use ratatui::text::ToText;
 use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::Frame;
 
@@ -23,7 +21,7 @@ impl Scene {
 
 pub(crate) struct App {
     scene: Scene,
-    console_style: Style,
+    pub(crate) console_style: Style,
 }
 
 impl App {
@@ -35,16 +33,6 @@ impl App {
     }
 
     pub fn draw(&self, f: &mut Frame, title: &str, input: &str) {
-        if f.area().height * f.area().width < 2400 {
-            f.render_widget(
-                Paragraph::new("Please resize the terminal to at least 80x30.")
-                    .block(Block::default().borders(Borders::ALL).title("Error"))
-                    .alignment(Alignment::Center),
-                f.area(),
-            );
-            return;
-        }
-
         let title_wg = Paragraph::new(ratatui::style::Stylize::bold(title))
             .block(Block::default().borders(Borders::ALL).title("Title"))
             .alignment(Alignment::Center);
