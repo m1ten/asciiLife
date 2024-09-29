@@ -33,12 +33,12 @@ impl App {
     }
 
     pub fn draw(&self, f: &mut Frame, title: &str, input: &str, _cursor: &mut u8) {
-        let title_wg = Paragraph::new(ratatui::style::Stylize::bold(title))
-            .block(Block::default().borders(Borders::ALL).title("Title"))
-            .alignment(Alignment::Center);
+        // let title_wg = Paragraph::new(ratatui::style::Stylize::bold(title))
+        //     .block(Block::default().borders(Borders::ALL).title("Title"))
+        //     .alignment(Alignment::Center);
 
         let screen_wg = Paragraph::new(self.scene.fmt())
-            .block(Block::default().borders(Borders::ALL).title("Scene"))
+            .block(Block::default().borders(Borders::ALL).title(title))
             .alignment(Alignment::Center);
 
         let show_cursor: String;
@@ -61,17 +61,17 @@ impl App {
             // .margin(2)
             .constraints(
                 [
-                    Constraint::Percentage(10),
-                    Constraint::Percentage(80),
+                    // Constraint::Percentage(10),
+                    Constraint::Percentage(90),
                     Constraint::Percentage(10),
                 ]
                 .as_ref(),
             )
             .split(f.area());
 
-        f.render_widget(title_wg, chunks[0]);
-        f.render_widget(screen_wg, chunks[1]);
-        f.render_widget(console_wg, chunks[2]);
+        // f.render_widget(title_wg, chunks[0]);
+        f.render_widget(screen_wg, chunks[0]);
+        f.render_widget(console_wg, chunks[1]);
     }
 
     pub fn handle_input(&mut self, input: &str) -> Result<bool, bool> {
